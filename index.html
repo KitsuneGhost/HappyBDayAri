@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Happy Birthday ❤️</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <style>
+
+    #popup {
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  opacity: 0;
+  transform: scale(0.8);
+}
+
+#popup.show {
+  opacity: 1;
+  transform: scale(1);
+}
+
+  .balloon {
+    width: 50px;
+    height: 70px;
+    background: radial-gradient(circle at 30% 30%, #ff6b81, #ff1e56);
+    border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%; /* more balloon-like */
+    position: absolute;
+    cursor: pointer;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+  }
+
+  /* Balloon string */
+  .balloon::after {
+    content: '';
+    width: 2px;
+    height: 40px;
+    background: #555;
+    position: absolute;
+    bottom: -40px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  #wheelPointer {
+      color: #ff1e56; /* bright pink for visibility */
+      text-shadow: 0 0 8px #ff6b81; /* subtle glow */
+      font-size: 48px;
+      pointer-events: none; /* doesn’t block clicks */
+      z-index: 10; /* ensures it appears above the canvas */
+      transform: rotate(180deg); /* makes the arrow point left */
+    }
+
+  </style>
+</head>
+
+<body class="bg-gradient-to-r from-pink-200 via-purple-200 to-blue-200 text-center p-4">
+
+  <!-- Header -->
+  <h1 class="text-5xl md:text-7xl font-extrabold text-pink-600 drop-shadow-lg mt-8">
+    🎂 Happy Birthday, Ari! 🎂
+  </h1>
+  
+  <!-- Subtitle -->
+  <p class="mt-4 text-lg md:text-2xl text-gray-700">
+    Even with ocean between us, I’m celebrating with you 💕
+  </p>
+
+  <!-- Surprise Button -->
+  <button 
+    id="revealBtn"
+    class="mt-8 px-6 py-3 bg-pink-500 hover:bg-pink-600 text-white font-bold rounded-2xl shadow-lg transition"
+  >
+    Click for a Surprise 🎁
+  </button>
+
+  <!-- Hidden Message -->
+  <div id="message" class="mt-8 hidden text-2xl md:text-3xl font-semibold text-purple-700 space-y-4">
+  <p>Happy Birthday, my love ❤️</p>
+  <p>I’m so grateful we get to share another year of your beautiful life together.</p>
+  <p>You are the best thing that ever happened to me 💖</p>
+  <p>(Click on a balloon)</p>
+  </div>
+
+  <!-- Balloon Game Section -->
+  <div id="balloon-container" class="relative w-full h-96 mt-20 overflow-hidden">
+    <!-- Balloons generated via JS -->
+  </div>
+
+  <!-- Spin the wheel Section -->
+  <section id="spin-wheel" class="mt-20 max-w-3xl mx-auto p-10 bg-pink-50 rounded-2xl shadow-lg text-center">
+  <h2 class="text-3xl font-bold text-pink-700 mb-6">Spin the Wheel 🎡</h2>
+  
+  <div class="relative w-[400px] mx-auto">
+  <canvas id="wheelCanvas" width="400" height="400"></canvas>
+
+  <!-- Pointer on the right -->
+  <div id="wheelPointer" class="absolute top-1/2 right-0 transform translate-x-full -translate-y-1/2 text-4xl">
+    ➤
+  </div>
+</div>
+  
+  <button id="spinButton" class="mt-6 px-6 py-3 bg-pink-600 text-white rounded-xl shadow-md hover:bg-pink-500 transition">
+    Spin!
+  </button>
+
+  <p id="wheelResult" class="mt-4 text-xl font-semibold text-gray-700"></p>
+</section>
+
+<div id="popup" class="fixed inset-0 flex items-center justify-center bg-black/50 hidden z-50">
+  <div class="relative bg-white rounded-2xl p-6 max-w-sm max-h-[80vh] overflow-y-auto shadow-lg text-center">
+    <!-- Close button -->
+    <span id="popupClose" class="absolute top-2 right-2 cursor-pointer text-2xl font-bold">&times;</span>
+    <div id="popupContent"></div>
+  </div>
+</div>
+
+<!-- Can of Love Section -->
+<section id="love-jar-section" class="mt-20 max-w-md mx-auto text-center">
+  <h2 class="text-3xl font-bold text-pink-700 mb-6">💖 Reasons why I love you 💖</h2>
+  <div id="jar-container" class="relative w-64 h-80 mx-auto border-4 border-pink-400 rounded-3xl overflow-hidden bg-white shadow-lg">
+    <!-- Sticky notes will appear here -->
+  </div>
+  <button id="pullNoteBtn" class="mt-6 px-6 py-3 bg-pink-600 text-white rounded-xl shadow-md hover:bg-pink-500 transition">
+    Pull a Love Note 💌
+  </button>
+</section>
+
+<script>
+const loveMessages = [
+  "You make me smile every day 😄",
+  "I love your laugh ❤️",
+  "You are my sunshine 🌞",
+  "I adore your kindness 💖",
+  "You always know how to cheer me up 🌸",
+  "Being with you feels like home 🏡",
+  "You inspire me to be better ✨",
+  "I love your hugs 🤗",
+  "Your eyes sparkle like stars ✨",
+  "You make life magical 🌟",
+  "I love you for your pure heart ❤️",
+  "I love you for your soul 🌟",
+  "I love you for your way of cheering people up 😄",
+  "I love you for the way you see this world 🌍",
+  "I love you for your dedication to your dream 🎯",
+  "I love you for your optimism ☀️",
+  "I love you for your plushie and lego obsessions 🧸🧱",
+  "I love you for your vibes ✨",
+  "I love you for your kindness 💖",
+  "I love you for your cheerfulness 😃",
+  "I love you because you take care of people around you 🤗",
+  "I love you for your indecisiveness 🤔",
+  "I love you for your smile 😁",
+  "I love you for that spark in your eyes when you talk about being a doctor 👩‍⚕️✨",
+  "I love you for your face 😊",
+  "I love staring into your eyes and forgetting everything in the world 👀💫",
+  "I love you for your freckles 🌸",
+  "I love you for your hair 💇‍♀️",
+  "I love you for your attentiveness 👂❤️",
+  "I love you for your love to jewelry 💍",
+  "I love you because you are gorgeous 😍",
+  "I love you for your music tastes 🎵",
+  "I love you for your laugh 😂",
+  "I love you for your lips 💋",
+  "I love you for your humor 😆",
+  "I love you for the way you deal with hardships 💪",
+  "I love you because you are beautiful 🌹",
+  "I love you because you are very cute 🐰",
+  "I love you for your confidence 💃",
+  "I love you for your strength 🏋️‍♀️",
+  "I love you for your character 🌟",
+  "I love you because you always do what you think is right ✅",
+  "I love you because you are brave 🦁",
+  "I love you because you are smart 🧠",
+  "I love you for your loyalty 🤝",
+  "I love you for your passion 🔥",
+  "I love you for your drawings 🎨",
+  "I love you because you are very funny 🤣",
+  "I love you because you are pretty 🌸",
+  "I love you for your honesty 📝",
+  "I love you for your energy ⚡",
+  "I love you for your voice 🎤",
+  "I love you for drawing hearts everywhere 💕",
+  "I love you for your creativity 🖌️",
+  "I love you because you are unique 🌈",
+  "I love you because you are always there for me 🤗",
+  "I love you because you support me 💌",
+  "I love you because you make me laugh when I'm sad 😹",
+  "I love you for our 'I love you more' game (c'mon we both know I love you more) ❤️",
+  "I love you for the way you pronounce 'no' in Russian ❌🇷🇺",
+  "I love you for introducing me to Latinos food 🌮",
+  "I love you for loving me through the hard times ❤️‍🩹",
+  "I love you for staying with me even when I do mistakes 🙏",
+  "I love you for all the hugs we had 🤗",
+  "I love you because you are amazing 🌟",
+  "I love you for your faithfulness 🛡️",
+  "I love you because you believe in me even when I don't 💖",
+  "I love you because you are forgiving 🤍",
+  "I love you for your appreciation 👏",
+  "I love you for your curiosity 🧐",
+  "I love you for your thoughtfulness 🕊️",
+  "I love you because you decided to go through long distance with me ✈️❤️",
+  "I love you because you are hardworking 💼",
+  "I love you because you are gentle 🕊️",
+  "I love you because you are intelligent 🧠",
+  "I love you because you are patient with me ⏳",
+  "I love you for your presence 🌹",
+  "I love you for your style 👗",
+  "I love you for your warmth 🔥",
+  "I love you for your natural beauty 🌿",
+  "I love you because you are trustworthy 🤝",
+  "I love you because you are playful 🐾",
+  "I love you because of our good moments and because you remember them 🥰",
+  "I love you because you are very understanding 💡",
+  "I love you because you are respectful 🙏",
+  "I love you for your charm 💫",
+  "I love you for your grace 👑",
+  "I love you for your little jokes and pranks 😏",
+  "I love you because you reassure me when I need it 🤗",
+  "I love you for our bond 🔗",
+  "I love you for your beliefs 🕊️",
+  "I love you for your effort 💪",
+  "I love you for your flaws ❤️‍🔥",
+  "I love you for all the advices you have given me 📜",
+  "I love you for your manners 🙏",
+  "I love you because you are responsible 🛡️"
+];
+
+// Shuffle the array
+let availableMessages = [...loveMessages];
+
+function getRandomMessage() {
+  if(availableMessages.length === 0){
+    availableMessages = [...loveMessages]; // reset when all are used
+  }
+  const index = Math.floor(Math.random() * availableMessages.length);
+  const message = availableMessages[index];
+  availableMessages.splice(index, 1); // remove used message
+  return message;
+}
+
+const jarButton = document.getElementById('pullNoteBtn'); 
+const jarContainer = document.getElementById('jar-container'); 
+
+let clickCount = 0; // track number of clicks
+
+jarButton.addEventListener('click', () => {
+  clickCount++;
+
+  let message;
+
+  if (clickCount === 5) {
+    // Special 5th click message
+    message = "Keep clicking, there’s 100+ reasons 💖";
+  } else {
+    if (availableMessages.length === 0) {
+      availableMessages = [...loveMessages]; // reset
+    }
+    // Pick random message
+    const index = Math.floor(Math.random() * availableMessages.length);
+    message = availableMessages.splice(index, 1)[0];
+  }
+
+  // Create sticky note
+  const note = document.createElement('div');
+  note.innerText = message;
+  note.className = 'absolute bg-yellow-300 p-2 rounded shadow-md text-sm font-semibold w-44 text-center';
+
+  // Random position inside jar
+  const x = Math.random() * (jarContainer.clientWidth - 180);
+  const y = Math.random() * (jarContainer.clientHeight - 50);
+  note.style.left = x + 'px';
+  note.style.top = y + 'px';
+
+  // Random slight rotation
+  const rotation = (Math.random() * 20 - 10) + 'deg';
+  note.style.transform = `rotate(${rotation})`;
+
+  // Add to jar
+  jarContainer.appendChild(note);
+
+  // Optional: remove after some time
+  setTimeout(() => note.remove(), 8000);
+});
+
+</script>
+
+</div>
+  <!-- Friends’ Birthday Wishes -->
+  <section id="friends-wishes" class="mt-20 max-w-3xl mx-auto px-4 py-10 bg-white/70 rounded-2xl shadow-lg">
+    <h2 class="text-3xl font-bold text-pink-600 mb-6">🎉 Your Friends and Family...</h2>
+  
+    <div id="wishes-container" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <!-- Individual wishes will be injected here via JS -->
+    </div>
+  </section>
+
+  <!-- Music / Audio -->
+  <audio id="music" src="your-music.mp3"></audio>
+
+  <script>
+    const btn = document.getElementById("revealBtn");
+    const msg = document.getElementById("message");
+    const balloonContainer = document.getElementById('balloon-container');
+    const music = document.getElementById('music');
+
+    // Surprise messages or image URLs
+    const surprises = [
+      "You are amazing 💖",
+      "pic1.jpg",
+      "Happy Birthday! 🎂",
+      "pic2.jpg",
+      "pic3.jpg",
+      "pic4.jpg",
+      "pic5.jpg",
+      "pic6.jpg",
+      "pic7.jpg",
+      "pic8.jpg",
+      "Love you tons ❤️",
+      "You are GORGEOUS ❤️💖",
+      "Feliz Cumpleaños!🎂🌟",
+      "Hugs incoming 🤗",
+      "Smile! 😄",
+      "Cake time 🎂",
+      "Shine bright ✨",
+      "Best day ever 🎉",
+      "You make me happy 😍",
+      "Keep smiling 😊",
+      "Big hugs 🐻",
+      "You’re a star 🌟",
+      "Forever my fave 💕",
+      "Joy & laughter 😄",
+      "Sweetest human 🍭",
+      "Magic moment ✨",
+      "You’re cute 🐰",
+      "So grateful 🙏",
+      "Sunshine vibes 🌞",
+      "Happy vibes only 😎"
+    ];
+
+    // Surprise button click
+    btn.addEventListener("click", () => {
+      msg.classList.remove("hidden");
+      btn.classList.add("hidden");
+      confetti({ particleCount: 200, spread: 100, origin: { y: 0.6 } });
+      music.play().catch(() => console.log("Music autoplay blocked, user interaction needed."));
+    });
+
+    // Balloon generator
+   function createBalloon() {
+  const balloon = document.createElement('div');
+  const surprise = surprises[Math.floor(Math.random() * surprises.length)];
+
+  balloon.className = 'balloon';
+  balloon.style.left = Math.random() * 90 + 'vw';
+  balloon.style.bottom = '-100px';
+  balloon.style.transition = 'bottom 6s linear, transform 0.2s';
+
+  balloon.addEventListener('click', () => {
+      confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+
+      const display = document.createElement('div');
+      display.className = 'mt-4 text-center';
+      if(surprise.match(/\.(jpg|jpeg|png|gif)$/i)) {
+        const img = document.createElement('img');
+        img.src = surprise;
+        img.className = 'mx-auto rounded-2xl shadow-md w-48';
+        display.appendChild(img);
+      } else {
+        const p = document.createElement('p');
+        p.className = 'text-2xl font-semibold text-purple-700';
+        p.innerText = surprise;
+        display.appendChild(p);
+      }
+     balloonContainer.appendChild(display);
+     balloon.remove();
+
+     // ⏰ remove after 3 seconds
+    setTimeout(() => display.remove(), 3000);
+    });
+
+    balloonContainer.appendChild(balloon);
+
+    setTimeout(() => {
+      balloon.style.bottom = '100%';
+    }, 50);
+
+    setTimeout(() => balloon.remove(), 6000);
+  }
+
+
+    setInterval(createBalloon, 1200);
+  </script>
+
+<script>
+const wishes = [
+  {name: "Doña Isis", message: "My dear Ari, you're turning 22! 😀... but you will always be my Beba!! 🤗 You have grown from a beautiful small girl into a gorgeous young woman 😍... but your big, noble and sweet heart is your prettiest feature 🥰. May God always keep you safe and healthy. I wish all the best for you!... hope you have a very happy and wonderful birthday and may all your deeams come true! 😘Love you to the moon & back!! Your Mom ❤"},
+  {name: "Andrea", message: "Ariana bella y hermosa de mi corazónnnnn!!! Te quiero tantísimo y me haces tanta freaking falta!!!!!!! Te lo juro que nunca hubiera imaginado que algún día pasaríamos de estar a 5 min de distancia y vernos casi todas las semanas a estar miles y miles de km de distancia, y solo poder verte (con suerte) pocas veces en un año 😭 Pero no me arrepiento de nada, cada momento que compartí contigo y todas las memorias que tenemos juntas las cargo conmigo siempre :) Ari te deseo lo mejor en este día tan especial, y a pesar de que no pueda estar ahi en persona, espero que sepas lo mucho que te amo y que te deseo lo mejor en esta vida. Que tus días estén rodeados de personas que te amen y que cada problema que te venga en la vida (porque son inevitables jajaj) pasen igual de rápido que como llegaron. Happy birthday Ari! Te amo tanto, sos la hermana que nunca tuve. Go eat your twenties upppp!!!! ❤🎂"},
+  {name: "Valerie", message: "Ari, ¡happy birthday niña preciosa!!Sos una persona extremadamente especial en mi vida. Gracias por siempre estar ahí para mí, ha sido super divertido estos últimos años crecer juntas y crear memorias inolvidables. No puedo esperar por volver a verte, visitarte donde sea que estés y seguir agregando momentos bonitos al álbum. Sos una amiga que voy a atesorar por el resto de mi vida y espero que tengas un cumple fenomenal. Happy 22!!"},
+  {name: "Alena", message: "Ari, happy birthday💕 I wish you lots of sunny days in life and bright emotions. Let every moment bring you joy and inspiration. I hope you will be always surrounded with love and kindness. Wish you all the best in the world✨️🎉" },
+  {name: "Zhan", message: "Hey Ari! Happy birthday!🌟 I wish your dreams come true and you’ll be the happiest woman. Enjoy your live with your beloved ones💖" },
+  {name: "Asadbek", message: "Happy Birthday, Ariana! May your year be full of amazing goals, big smiles, and unforgettable moments just like Messi in his prime😅 From Asadbek 🎉" },
+];
+
+const wishesContainer = document.getElementById('wishes-container');
+
+wishes.forEach(wish => {
+  const card = document.createElement('div');
+  card.className = 'p-4 bg-pink-50/80 rounded-xl shadow-md hover:shadow-lg cursor-pointer transition';
+
+  const name = document.createElement('h3');
+  name.className = 'font-bold text-lg text-pink-700';
+  name.innerText = wish.name;
+
+  const msg = document.createElement('p');
+  msg.className = 'text-gray-700 mt-2 max-h-0 overflow-hidden transition-all duration-500';
+  msg.innerText = wish.message;
+
+  // Toggle full message on click
+  card.addEventListener('click', () => {
+    if(msg.style.maxHeight === '0px' || !msg.style.maxHeight) {
+      msg.style.maxHeight = msg.scrollHeight + 'px';
+    } else {
+      msg.style.maxHeight = '0px';
+    }
+  });
+
+  card.appendChild(name);
+  card.appendChild(msg);
+  wishesContainer.appendChild(card);
+});
+</script>
+
+<script>
+  const canvas = document.getElementById('wheelCanvas');
+const ctx = canvas.getContext('2d');
+const wheelRadius = 180;
+
+const segments = [
+  { text: "Virtual Hug 🤗", message: "A big virtual hug just for you! 🤗❤️" },
+  { text: "A piece of Cake 🎂", message: "Imagine your favorite cake right here! 🎂🍓" },
+  { text: "A Jelly cat 🏖️", image: "https://placekitten.com/300/300", message: "Is waiting for you in Italy ❤️" },
+  { text: "I Miss You ❤️", message: "I really miss you and can’t wait to see you soon 💖" },
+  { text: "Confetti Surprise 🎉", message: "Surprise! 🎉 Hope this brightens your day!" },
+  { text: "Love Letter 💌", message: "Will be in your WhatsApp after the party 💌" }
+];
+
+
+const colors = ["#FFB6C1","#FFC0CB","#FF69B4","#FF1493","#DB7093","#C71585"];
+
+let startAngle = 0;
+
+function drawWheel() {
+  const segmentAngle = 2 * Math.PI / segments.length;
+
+  for(let i = 0; i < segments.length; i++){
+    ctx.beginPath();
+    ctx.moveTo(canvas.width/2, canvas.height/2);
+    ctx.arc(canvas.width/2, canvas.height/2, wheelRadius, startAngle + i*segmentAngle, startAngle + (i+1)*segmentAngle);
+    ctx.fillStyle = colors[i % colors.length];
+    ctx.fill();
+    ctx.save();
+    ctx.translate(canvas.width/2, canvas.height/2);
+    ctx.rotate(startAngle + (i + 0.5) * segmentAngle);
+    ctx.textAlign = "right";
+    ctx.fillStyle = "#fff";
+    ctx.font = "16px Arial";
+    ctx.fillText(segments[i].text, wheelRadius - 10, 5);
+    ctx.restore();
+  }
+}
+
+drawWheel();
+
+// Easing function for smooth spin
+function easeOut(t, b, c, d) {
+  t /= d;
+  t--;
+  return c*(t*t*t + 1) + b;
+}
+
+// Popup elements
+const popup = document.getElementById('popup');
+const popupContent = document.getElementById('popupContent');
+const popupClose = document.getElementById('popupClose');
+
+// Close popup once (not on every spin)
+popupClose.addEventListener('click', () => {
+  popup.classList.remove('show');
+  setTimeout(() => popup.classList.add('hidden'), 300);
+});
+
+// Spin button logic
+document.getElementById('spinButton').addEventListener('click', () => {
+  const spins = Math.random() * 10 + 10; // random spins
+  const duration = 4000; // 4 seconds
+  let start = null;
+
+  function animate(timestamp) {
+    if(!start) start = timestamp;
+    const progress = timestamp - start;
+    const angle = easeOut(progress, 0, spins * 2 * Math.PI, duration);
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    startAngle = angle;
+    drawWheel();
+
+    if(progress < duration){
+      requestAnimationFrame(animate);
+    } else {
+      // Spin finished
+      const segmentIndex = Math.floor(segments.length - (startAngle % (2*Math.PI)) / (2*Math.PI/segments.length)) % segments.length;
+      const selected = segments[segmentIndex];
+
+      // Clear previous popup content
+      popupContent.innerHTML = '';
+
+      // Add message
+      if(selected.message){
+        const p = document.createElement('p');
+        p.className = 'text-gray-800 text-lg';
+        p.innerText = selected.message;
+        popupContent.appendChild(p);
+      }
+
+      // Show popup with animation
+      popup.classList.remove('hidden');
+      setTimeout(() => popup.classList.add('show'), 10);
+    }
+  }
+
+  requestAnimationFrame(animate);
+});
+</script>
+</body>
+</html>
